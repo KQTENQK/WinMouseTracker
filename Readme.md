@@ -1,6 +1,6 @@
 # Windows Mouse Tracker
 
-Applications to track mouse movement: record a set of points over dt or capture trajectory up to no-movement delay.
+Applications to track mouse movement: record a set of points over dt or capture trajectory over dt up to no-movement delay.
 
 ## /Terminal/
 
