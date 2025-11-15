@@ -1,0 +1,129 @@
+cmake_minimum_required(VERSION 3.15)
+project(MouseTracker VERSION 1.0.0 LANGUAGES C CXX)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+if(MSVC)
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    add_compile_options("$<$<CONFIG:RELEASE>:/O2 /GL>")
+endif()
+
+set(VCPKG_ROOT "C:/vcpkg/packages")
+
+set(OPENGL_REGISTRY_INCLUDE_DIR "${VCPKG_ROOT}/opengl-registry_x64-windows-static/include")
+
+set(SDL2_STATIC_INCLUDE_DIR "${VCPKG_ROOT}/sdl2_x64-windows-static/include/SDL2")
+set(SDL2_STATIC_LIB "${VCPKG_ROOT}/sdl2_x64-windows-static/lib/SDL2-static.lib")
+set(SDL2MAIN_STATIC_LIB "${VCPKG_ROOT}/sdl2_x64-windows-static/lib/manual-link/SDL2main.lib")
+
+set(GL3W_STATIC_INCLUDE_DIR "${VCPKG_ROOT}/gl3w_x64-windows-static/include")
+set(GL3W_STATIC_LIB "${VCPKG_ROOT}/gl3w_x64-windows-static/lib/gl3w.lib")
+
+set(EGL_REGISTRY_INCLUDE_DIR "${VCPKG_ROOT}/egl-registry_x64-windows-static/include")
+
+
+add_library(OpenGL_Static INTERFACE)
+target_include_directories(OpenGL_Static INTERFACE 
+    ${OPENGL_REGISTRY_INCLUDE_DIR}
+    ${GL3W_STATIC_INCLUDE_DIR}
+)
+
+add_library(SDL2::SDL2 STATIC IMPORTED)
+set_target_properties(SDL2::SDL2 PROPERTIES
+    IMPORTED_LOCATION ${SDL2_STATIC_LIB}
+    INTERFACE_INCLUDE_DIRECTORIES ${SDL2_STATIC_INCLUDE_DIR}
+    INTERFACE_LINK_LIBRARIES "${SDL2MAIN_STATIC_LIB}"
+)
+
+add_library(gl3w::gl3w STATIC IMPORTED)
+set_target_properties(gl3w::gl3w PROPERTIES
+    IMPORTED_LOCATION ${GL3W_STATIC_LIB}
+    INTERFACE_INCLUDE_DIRECTORIES ${GL3W_STATIC_INCLUDE_DIR}
+)
+
+set(IMGUI_DIR ${CMAKE_CURRENT_SOURCE_DIR}/External/imgui-1.92.4)
+
+add_library(imgui STATIC
+    ${IMGUI_DIR}/imgui.cpp
+    ${IMGUI_DIR}/imgui_draw.cpp
+    ${IMGUI_DIR}/imgui_tables.cpp
+    ${IMGUI_DIR}/imgui_widgets.cpp
+    ${IMGUI_DIR}/backends/imgui_impl_sdl2.cpp
+    ${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp
+)
+
+target_include_directories(imgui PUBLIC 
+    ${IMGUI_DIR}
+    ${SDL2_STATIC_INCLUDE_DIR}
+)
+
+target_compile_definitions(imgui PUBLIC 
+    IMGUI_IMPL_OPENGL_LOADER_GL3W
+    GLEW_STATIC
+)
+
+file(GLOB_RECURSE SOURCES 
+    "MouseTracker/*.cpp"
+    "MouseTracker/*.c"
+    "main.cpp"
+)
+
+file(GLOB_RECURSE HEADERS 
+    "MouseTracker/*.h"
+    "MouseTracker/*.hpp"
+)
+
+list(FILTER SOURCES EXCLUDE REGEX ".*/examples/.*")
+
+add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
+
+target_include_directories(${PROJECT_NAME} PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/MouseTracker
+    ${OPENGL_REGISTRY_INCLUDE_DIR}
+    ${GL3W_STATIC_INCLUDE_DIR}
+    ${SDL2_STATIC_INCLUDE_DIR}
+    ${EGL_REGISTRY_INCLUDE_DIR}
+)
+
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+    IMGUI_IMPL_OPENGL_LOADER_GL3W
+    GL3W_STATIC
+    GLEW_STATIC
+    SDL_MAIN_HANDLED
+)
+
+target_link_libraries(${PROJECT_NAME} PRIVATE 
+    OpenGL_Static
+    SDL2::SDL2
+    gl3w::gl3w
+    imgui
+)
+
+if(WIN32)
+    target_link_libraries(${PROJECT_NAME} PRIVATE
+        imm32
+        version
+        winmm
+        setupapi
+        advapi32
+        shell32
+        user32
+        gdi32
+        opengl32
+    )
+    
+    target_link_options(${PROJECT_NAME} PRIVATE 
+        "/SUBSYSTEM:WINDOWS"
+        "/NODEFAULTLIB:msvcrt.lib"
+        "$<$<CONFIG:RELEASE>:/OPT:REF>"
+        "$<$<CONFIG:RELEASE>:/OPT:ICF>"
+    )
+endif()
+
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    MSVC_RUNTIME_LIBRARY "MultiThreaded"
+    CXX_VISIBILITY_PRESET hidden
+    VISIBILITY_INLINES_HIDDEN ON
+)
