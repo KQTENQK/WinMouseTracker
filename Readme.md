@@ -2,6 +2,8 @@
 
 Applications to track mouse movement: record a set of points over dt or capture trajectory over dt up to no-movement delay.
 
+Dt (delta time) operates up to 1 milliesecond discretization period.
+
 ## /Terminal/
 
 Terminal app to track mouse.
